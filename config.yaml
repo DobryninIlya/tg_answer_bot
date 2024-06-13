@@ -1,0 +1,4 @@
+token: 'TOKEN_HERE'
+group_id: 'GROUP_ID'
+welcome_message: 'Привет! Напишите ваше сообщение, и мы передадим его в соответствующую группу.'
+confirmation_message: 'Ваше сообщение было передано. Спасибо!'
