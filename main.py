@@ -1,7 +1,7 @@
 import logging
 import sqlite3
 import yaml
-from telegram import Update
+from telegram import Update, InputMediaPhoto, InputMediaVideo, InputMediaDocument
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackContext, ContextTypes, filters
 
 # Загрузка конфигурации
@@ -54,16 +54,33 @@ async def handle_message(update: Update, context: CallbackContext):
     user_message = update.message
     user_id = update.message.chat_id
 
-    # Пересылаем сообщение в группу и добавляем ID пользователя в базу данных
-    forwarded_message = await context.bot.forward_message(
-        chat_id=config['group_id'],
-        from_chat_id=user_id,
-        message_id=user_message.message_id
-    )
-    add_message(user_id, user_message.message_id, forwarded_message.message_id)
+    media_group = []
+    if user_message.photo:
+        for photo in user_message.photo:
+            media_group.append(InputMediaPhoto(media=photo.file_id))
+    if user_message.video:
+        media_group.append(InputMediaVideo(media=user_message.video.file_id))
+    if user_message.document:
+        media_group.append(InputMediaDocument(media=user_message.document.file_id))
+
+    if media_group:
+        forwarded_message = await context.bot.send_media_group(
+            chat_id=config['group_id'],
+            media=media_group
+        )
+        for fwd_msg in forwarded_message:
+            add_message(user_id, user_message.message_id, fwd_msg.message_id)
+    else:
+        forwarded_message = await context.bot.forward_message(
+            chat_id=config['group_id'],
+            from_chat_id=user_id,
+            message_id=user_message.message_id
+        )
+        add_message(user_id, user_message.message_id, forwarded_message.message_id)
 
     # Отправляем подтверждение пользователю
     await update.message.reply_text(config['confirmation_message'])
+
 
 # Обработка ответов из группы
 async def forward_to_user(update: Update, context: CallbackContext):
